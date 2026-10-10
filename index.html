@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zippy — Rock Paper Scissors</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#faf9f6;--panel:#f0ece2;--card:#ffffff;--ink:#15181b;--ink-dim:#5b5f63;--mute:#8c8a82;
+  --rust:#c14a2e;--line:#d8d2c2;--line-strong:#b8b09a;--green:#1f8b4c;--red:#b83227;
+  --ease:cubic-bezier(.2,.8,.2,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--paper);-webkit-text-size-adjust:100%}
+body{min-height:100vh;background:var(--paper);color:var(--ink);font-family:'Inter',-apple-system,'Segoe UI',sans-serif;overflow-x:hidden;animation:pageIn .55s ease}
+@keyframes pageIn{from{opacity:0}to{opacity:1}}
+body.leaving{opacity:0;transition:opacity .4s ease}
+button{font-family:inherit}
+svg{display:block}
+.mono{font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace;text-transform:uppercase;letter-spacing:.08em}
+
+/* ---------- header ---------- */
+header{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 40px;background:var(--paper);border-bottom:1px solid var(--line)}
+.hl{display:flex;align-items:center;gap:13px;min-width:0}
+.mark{width:38px;height:38px;border-radius:10px;background:var(--ink);display:grid;place-items:center;flex-shrink:0}
+.mark:before{content:"";width:10px;height:10px;border-radius:50%;background:var(--rust)}
+.brand b{display:block;font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:600;letter-spacing:-.01em;line-height:1.15}
+.brand span{display:block;font-size:12px;color:var(--ink-dim);margin-top:2px}
+.hr{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+
+.status{display:inline-flex;align-items:center;gap:9px;font-size:11px;font-weight:500;padding:9px 14px;border:1px solid var(--line-strong);background:var(--card);color:var(--ink-dim);border-radius:999px;transition:border-color .3s,color .3s}
+.status:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--line-strong);transition:background .3s}
+.status.ok{border-color:var(--green);color:var(--green)}
+.status.ok:before{background:var(--green)}
+.status.err{color:var(--ink)}
+
+.portbtn{display:inline-flex;align-items:center;gap:9px;font-size:11px;font-weight:500;padding:9px 14px;border:1px solid var(--line-strong);background:var(--card);color:var(--ink);cursor:pointer;border-radius:999px;transition:border-color .2s,color .2s}
+.portbtn:hover{border-color:var(--ink)}
+.portbtn .zp{width:7px;height:7px;border-radius:50%;background:var(--line-strong)}
+.portbtn.on{color:var(--green);border-color:var(--green)}
+.portbtn.on .zp{background:var(--green)}
+
+.upill{display:inline-flex;align-items:center;gap:10px;font-size:13px;border:1px solid var(--line);background:var(--panel);padding:9px 16px;border-radius:999px;max-width:300px}
+.upill b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.upill span{color:var(--mute);white-space:nowrap}
+.upill.setcode{cursor:pointer}
+.upill.setcode:hover{border-color:var(--ink)}
+
+.back{display:inline-flex;align-items:center;gap:9px;font-size:13px;font-weight:500;color:var(--paper);background:var(--ink);text-decoration:none;padding:10px 18px;border-radius:999px;cursor:pointer;transition:background .25s}
+.back:hover{background:var(--rust)}
+.back svg{transition:transform .3s var(--ease)}
+.back:hover svg{transform:translateX(-3px)}
+
+/* ---------- layout ---------- */
+main{padding:0 40px 80px;max-width:1280px;margin:0 auto}
+.view{display:none}
+.view.on{display:block;animation:viewIn .5s var(--ease)}
+@keyframes viewIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.eyebrow{display:flex;align-items:center;gap:12px;color:var(--rust);font-size:12px;font-weight:500;margin:56px 0 18px}
+.eyebrow:before{content:"";width:28px;height:1.5px;background:var(--rust)}
+h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(40px,6vw,76px);font-weight:300;letter-spacing:-.03em;line-height:1.04;margin-bottom:20px}
+h1 b{font-weight:600}
+.lead{max-width:600px;font-size:17px;line-height:1.7;color:var(--ink-dim);margin-bottom:40px;font-weight:300}
+.note{margin-top:22px;font-size:13px;color:var(--mute)}
+
+/* cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;max-width:1040px}
+.card{position:relative;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:28px;min-height:230px;display:flex;flex-direction:column;justify-content:flex-end;text-align:left;color:var(--ink);cursor:pointer;transition:transform .3s var(--ease),border-color .25s,box-shadow .3s}
+.card:hover{transform:translateY(-4px);border-color:var(--ink);box-shadow:0 18px 36px -24px rgba(21,24,27,.35)}
+.card:active{transform:scale(.99)}
+.card .ic{position:absolute;top:26px;left:28px;width:52px;height:52px;border-radius:13px;background:var(--panel);display:grid;place-items:center;color:var(--ink);font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:500;transition:background .25s,color .25s}
+.card .ic svg{width:24px;height:24px}
+.card:hover .ic{background:var(--ink);color:var(--paper)}
+.card h3{font-family:'Space Grotesk',sans-serif;font-size:23px;font-weight:500;letter-spacing:-.01em;margin-bottom:6px}
+.card small{font-size:13px;color:var(--ink-dim)}
+.card.dark{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.card.dark .ic{background:#2a2d31;color:var(--paper)}
+.card.dark:hover .ic{background:var(--rust);color:#fff}
+.card.dark small{color:#a9adb3}
+.card.dark:hover{border-color:var(--rust)}
+.rise>*{opacity:0;transform:translateY(22px);animation:rise .6s var(--ease) forwards}
+.rise>*:nth-child(2){animation-delay:.07s}.rise>*:nth-child(3){animation-delay:.14s}.rise>*:nth-child(4){animation-delay:.21s}
+@keyframes rise{to{opacity:1;transform:none}}
+.cards.small .card{min-height:190px}
+
+/* ---------- game ---------- */
+#hud{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:26px 0 18px;flex-wrap:wrap}
+.sb{display:flex;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:6px 8px 6px 24px;gap:20px}
+.sb .p{display:flex;align-items:center;gap:12px}
+.sb .p div{font-size:13px;color:var(--ink-dim);font-weight:500}
+.sb b{font-family:'Space Grotesk',sans-serif;font-size:34px;font-weight:600;line-height:1;min-width:26px;text-align:center;display:inline-block}
+.sb b.bump{animation:bump .5s var(--ease)}
+@keyframes bump{40%{transform:scale(1.4);color:var(--rust)}}
+.sb .dash{width:1px;height:28px;background:var(--line)}
+.sb em{font-style:normal;font-size:12px;font-weight:500;background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:999px}
+.hudbtns{display:flex;gap:10px;flex-wrap:wrap}
+#arena{display:grid;grid-template-columns:1.4fr 1fr;gap:20px;height:min(58vh,540px);min-height:380px}
+@media(max-width:860px){#arena{grid-template-columns:1fr;height:auto}.side{height:320px}}
+.side{position:relative;border-radius:20px;overflow:hidden;border:1px solid var(--line);background:var(--panel);display:flex;align-items:center;justify-content:center}
+.ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--mute);font-size:14px}
+.ph svg{width:40px;height:40px}
+.tag{position:absolute;top:16px;left:16px;z-index:3;display:flex;align-items:center;gap:8px;font-size:12px;font-weight:500;background:var(--paper);border:1px solid var(--line);padding:7px 13px;border-radius:999px}
+.tag i{width:7px;height:7px;border-radius:50%;background:var(--green);display:block}
+video,#ov,#snap{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;transform:scaleX(-1)}
+.side.cam{background:#0d0e10;border-color:#0d0e10}
+.side.cam .ph{color:#8d9096}
+body.camon .ph{display:none}
+.fps{position:absolute;top:16px;right:16px;z-index:3;font-size:12px;font-weight:500;color:#fff;background:rgba(21,24,27,.72);padding:7px 12px;border-radius:999px;display:none}
+body.camon .fps{display:block}
+body.fc .fps{display:none}
+#snap{display:none;z-index:2}
+#live{position:absolute;left:16px;bottom:16px;z-index:3;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:500;background:rgba(21,24,27,.88);color:#fff;padding:9px 15px;border-radius:999px}
+#live svg{width:18px;height:18px}
+.side.cpu{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.side.cpu .tag{background:#2a2d31;border-color:#3a3d42;color:#d7d9dd}
+.side.cpu .tag i{background:var(--rust)}
+#cpu{position:relative;width:min(46%,200px);aspect-ratio:1;color:var(--paper)}
+#cpu svg{width:100%;height:100%}
+#cpu.pop{animation:pop .5s var(--ease)}
+#cpu.shake{animation:shake .32s infinite}
+@keyframes pop{from{transform:scale(.3) rotate(-20deg);opacity:0}to{transform:none;opacity:1}}
+@keyframes shake{50%{transform:translateY(-16px) rotate(3deg)}}
+#cpuName{position:absolute;left:16px;bottom:16px;font-size:13px;font-weight:500;background:#2a2d31;color:#e8eaee;padding:9px 15px;border-radius:999px}
+
+/* arm command monitor */
+#armBar{display:flex;align-items:center;gap:14px;margin-top:16px;padding:14px 20px;background:var(--card);border:1px solid var(--line);border-radius:14px;transition:border-color .3s}
+#armDot{width:10px;height:10px;border-radius:50%;background:var(--line-strong);flex-shrink:0}
+#armBar.sending{border-color:var(--rust)}
+#armBar.sending #armDot{background:var(--rust);animation:blink .8s ease-in-out infinite}
+#armBar.ok{border-color:var(--green)}
+#armBar.ok #armDot{background:var(--green)}
+#armBar.err{border-color:var(--red)}
+#armBar.err #armDot{background:var(--red)}
+@keyframes blink{50%{opacity:.25}}
+#armBar .t b{display:block;font-size:14px;font-weight:600}
+#armBar .t small{display:block;font-size:12.5px;color:var(--ink-dim);margin-top:2px}
+#armState{margin-left:auto;font-size:12px;font-weight:600;color:var(--ink-dim);white-space:nowrap}
+#armBar.ok #armState{color:var(--green)}
+#armBar.err #armState{color:var(--red)}
+#armBar.sending #armState{color:var(--rust)}
+.chips{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
+.chip{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:500;padding:6px 12px;border:1px solid var(--line);border-radius:999px;color:var(--ink-dim);background:var(--paper);white-space:nowrap}
+.chip i{width:7px;height:7px;border-radius:50%;background:var(--line-strong);display:block}
+.chip.ok{color:var(--green);border-color:var(--green)}.chip.ok i{background:var(--green)}
+.chip.bad{color:var(--red);border-color:var(--red)}.chip.bad i{background:var(--red)}
+.chip.wait{color:var(--rust);border-color:var(--rust)}.chip.wait i{background:var(--rust);animation:blink .8s ease-in-out infinite}
+
+.actions{display:flex;justify-content:center;margin-top:24px;min-height:56px}
+.btn{font-size:14px;font-weight:500;border:1px solid var(--ink);background:var(--ink);color:var(--paper);padding:15px 30px;border-radius:999px;cursor:pointer;transition:background .25s,border-color .25s,color .25s,transform .2s}
+.btn:hover{background:var(--rust);border-color:var(--rust)}
+.btn:active{transform:scale(.97)}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line-strong)}
+.btn.ghost:hover{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+#roundBtn{padding:17px 44px;font-size:15px}
+.practice #hud .sb,.practice #roundBtn,.practice #armBar{display:none}
+
+/* countdown */
+#count{position:fixed;inset:0;display:none;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-size:min(42vw,320px);font-weight:600;pointer-events:none;z-index:50;color:var(--ink);background:rgba(250,249,246,.94)}
+#count.on{display:flex}
+#count.on span{animation:tick .9s var(--ease)}
+#count.go{color:var(--rust);font-size:min(20vw,170px)}
+@keyframes tick{from{transform:scale(1.7);opacity:0}30%{opacity:1}to{transform:scale(.9)}}
+
+#banner{position:fixed;left:50%;bottom:28px;transform:translate(-50%,24px);opacity:0;background:var(--ink);color:var(--paper);padding:14px 26px;border-radius:999px;font-weight:500;font-size:15px;z-index:45;transition:all .35s var(--ease);pointer-events:none;white-space:nowrap}
+#banner.on{opacity:1;transform:translate(-50%,0)}
+
+/* toasts: command replies */
+#toasts{position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:70;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+.toast{display:flex;align-items:center;gap:10px;background:var(--ink);color:var(--paper);padding:11px 18px 11px 14px;border-radius:999px;font-size:13.5px;font-weight:500;box-shadow:0 14px 30px -14px rgba(21,24,27,.5);animation:toastIn .4s var(--ease)}
+.toast svg{width:18px;height:18px;flex-shrink:0}
+.toast.ok svg{color:#4cd08a}
+.toast.err svg{color:#ff8a7e}
+.toast.out{opacity:0;transform:translateY(-8px);transition:all .4s var(--ease)}
+@keyframes toastIn{from{opacity:0;transform:translateY(-12px)}}
+
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:60}
+#endWrap{text-align:center;padding-top:36px}
+#endWrap .eyebrow{justify-content:center}
+#endWrap .lead{margin:0 auto 34px}
+#endWrap .row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+#endTitle.lose b{color:var(--rust)}
+#loading{position:fixed;inset:0;background:var(--paper);z-index:80;display:none;align-items:center;justify-content:center;flex-direction:column;gap:18px;color:var(--ink-dim);font-size:15px;text-align:center;padding:30px;line-height:1.7}
+#loading.on{display:flex}
+.spin{width:40px;height:40px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--rust);animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* camera-only mode */
+body.fc{overflow:hidden}
+body.fc header{display:none}
+body.fc main{padding:0;max-width:none}
+body.fc #game{position:fixed;inset:0;z-index:40;background:#0d0e10;padding:0}
+body.fc #hud{position:absolute;top:16px;left:16px;right:16px;margin:0;z-index:5}
+body.fc #hud .btn.ghost{background:rgba(255,255,255,.92)}
+body.fc #arena{position:absolute;inset:0;display:block;height:auto;min-height:0}
+body.fc .side:not(.cpu){position:absolute;inset:0;border:0;border-radius:0}
+body.fc .side:not(.cpu) .tag{display:none}
+body.fc .side.cpu{position:absolute;right:20px;bottom:110px;width:150px;height:150px;border-radius:20px;z-index:6}
+body.fc .side.cpu .tag{display:none}
+body.fc #cpu{width:70px}
+body.fc #cpuName{left:50%;transform:translateX(-50%);bottom:8px;padding:5px 11px;font-size:11px}
+body.fc #live{bottom:34px;left:20px}
+body.fc #armBar{position:absolute;left:20px;bottom:92px;margin:0;z-index:6;max-width:330px;padding:10px 14px}
+body.fc .actions{position:absolute;left:0;right:0;bottom:28px;z-index:6;margin:0}
+body.fc #count{background:rgba(0,0,0,.4);color:#fff}
+body.fc #count.go{color:#ffd9cc}
+body.fc #toasts{top:20px}
+#fcEnd{position:fixed;inset:0;z-index:55;background:rgba(13,14,16,.74);display:none;align-items:center;justify-content:center;padding:20px}
+#fcEnd .box{background:var(--paper);border-radius:22px;padding:44px 50px;text-align:center;max-width:520px;animation:pop .45s var(--ease)}
+#fcEnd h1{font-size:clamp(38px,8vw,60px);margin:0 0 12px}
+#fcEnd p{color:var(--ink-dim);margin:0 0 26px;font-size:16px}
+#fcEnd .row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+#fcEnd h1.lose b{color:var(--rust)}
+
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}.rise>*{opacity:1;transform:none}}
+@media(max-width:900px){header{padding:12px 18px}main{padding:0 18px 70px}.upill{max-width:170px}}
+@media(max-width:620px){.brand span{display:none}.hr{gap:8px}.upill{display:none}}
+</style>
+<style>
+/* secret port button: tiny faded gear, bottom-right */
+.portbtn{position:fixed;right:10px;bottom:10px;z-index:60;width:22px;height:22px;padding:0;gap:0;justify-content:center;border:0;border-radius:50%;background:transparent;color:var(--ink-dim);font-size:13px;line-height:1;opacity:.18;transition:opacity .2s,color .2s}
+.portbtn:before{content:"\2699"}
+.portbtn .zp,.portbtn #portLabel{display:none}
+.portbtn:hover,.portbtn:focus-visible{opacity:1;border:0}
+.portbtn.on{color:var(--green);border:0}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hl">
+    <div class="mark"></div>
+    <div class="brand"><b>Zippy</b><span>Rock Paper Scissors</span></div>
+  </div>
+  <div class="hr">
+    <span class="status mono" id="status" title="">Offline</span>
+    <button class="portbtn mono" id="portBtn" type="button" title="Select ESP32 port"><span class="zp"></span><span id="portLabel">Port</span></button>
+    <div class="upill" id="upill"><b id="uEmail">Signing in…</b><span>·</span><span id="uDev">Device —</span></div>
+    <a class="back" id="backBtn" href="https://arulv123.github.io/ZIPPY-MAIN-PAGE-1/"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>Back to dashboard</a>
+  </div>
+</header>
+
+<div id="toasts"></div>
+
+<main>
+<!-- HOME -->
+<section class="view on" id="home">
+  <div class="eyebrow mono">Games</div>
+  <h1>Rock Paper <b>Scissors.</b></h1>
+  <p class="lead">Play a match against Zippy. Show your hand to the camera after the countdown, and the bionic arm reveals its move at the same moment — live on the real arm.</p>
+  <div class="cards rise">
+    <button class="card dark" id="playCard"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M7 4.5v15l12-7.5z"/></svg></div><h3>Play vs Zippy</h3><small>Choose rounds and start</small></button>
+    <button class="card" id="practiceCard"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 8h3l1.6-2.4h6.8L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.6"/></svg></div><h3>Camera check</h3><small>See what Zippy sees</small></button>
+    <button class="card" id="restCard"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.6-5.9M4 4v4.5h4.5"/></svg></div><h3>Rest position</h3><small>Reset the arm</small></button>
+  </div>
+  <p class="note">Your browser will ask for camera access when you start.</p>
+</section>
+
+<!-- ROUNDS -->
+<section class="view" id="pick">
+  <div class="eyebrow mono">New match</div>
+  <h1>Best of <b>how many?</b></h1>
+  <p class="lead">The first player to win the majority of rounds takes the match. Draws are replayed.</p>
+  <div class="cards small rise">
+    <button class="card" data-n="1"><div class="ic">1</div><h3>Best of 1</h3><small>Sudden death</small></button>
+    <button class="card" data-n="3"><div class="ic">3</div><h3>Best of 3</h3><small>First to 2</small></button>
+    <button class="card" data-n="5"><div class="ic">5</div><h3>Best of 5</h3><small>First to 3</small></button>
+    <button class="card dark" data-n="7"><div class="ic">7</div><h3>Best of 7</h3><small>First to 4</small></button>
+  </div>
+</section>
+
+<!-- GAME -->
+<section class="view" id="game">
+  <div id="hud">
+    <div class="sb"><div class="p"><div>You</div><b id="sYou">0</b></div><span class="dash"></span><div class="p"><b id="sCpu">0</b><div>Zippy</div></div><em id="info">Round 1</em></div>
+    <div class="hudbtns"><button class="btn ghost" id="fcBtn">Camera only</button><button class="btn ghost" id="leaveBtn">Leave match</button></div>
+  </div>
+  <div id="arena">
+    <div class="side cam">
+      <div class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M4 8h3l1.6-2.4h6.8L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.6"/></svg>Starting camera…</div>
+      <video id="video" playsinline muted></video><canvas id="ov"></canvas><img id="snap" alt="Your captured move">
+      <span class="tag"><i></i>You · camera live</span><span class="fps" id="fps">Tracking…</span>
+      <div id="live">Looking for your hand…</div>
+    </div>
+    <div class="side cpu">
+      <span class="tag"><i></i>Zippy</span>
+      <div id="cpu"></div>
+      <div id="cpuName">Ready</div>
+    </div>
+  </div>
+  <div id="armBar"><span id="armDot"></span><div class="t"><b id="armTitle">Arm idle</b><small id="armSub">Fist closes on the countdown · opens with Zippy's move on SHOOT</small></div><div class="chips"><span class="chip" id="fbChip"><i></i><span>Firebase · Online</span></span><span class="chip" id="portChip"><i></i><span>Arm · Offline</span></span></div></div>
+  <div class="actions"><button class="btn" id="roundBtn">Start round</button></div>
+</section>
+
+<!-- END -->
+<section class="view" id="end">
+  <div id="endWrap">
+    <div class="eyebrow mono">Match over</div>
+    <h1 id="endTitle"></h1>
+    <p class="lead" id="endSub"></p>
+    <div class="row"><button class="btn" id="againBtn">Try again</button><button class="btn ghost" id="menuBtn">Change rounds</button></div>
+  </div>
+</section>
+</main>
+
+<div id="fcEnd"><div class="box"><h1 id="fcTitle"></h1><p id="fcSub"></p><div class="row"><button class="btn" id="fcAgain">Play again</button><button class="btn ghost" id="fcMenu">Change rounds</button></div></div></div>
+<div id="count"><span id="countTxt"></span></div>
+<div id="banner"></div>
+<canvas id="confetti"></canvas>
+<div id="loading"><div class="spin"></div><div id="loadTxt">Starting camera and hand tracking…</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+/* ================= UI helpers (display only) ================= */
+const $=id=>document.getElementById(id);
+const MAIN_PAGE='https://arulv123.github.io/ZIPPY-MAIN-PAGE-1/';
+
+/* drawn icons — no emoji, so they look the same on every device */
+const SVG_ATTR='viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"';
+const ICON={
+  rock:'<svg '+SVG_ATTR+'><path d="M10 42L15 24 28 13 45 12 55 25 53 43 41 54 23 54z"/><path d="M15 24L30 27 28 13M30 27L45 12M30 27L45 35 55 25M45 35L53 43M45 35L41 54M30 27L27 43 10 42M27 43L23 54M27 43L41 54M27 43L45 35" stroke-width="2.2"/><path d="M15 24L30 27 28 13z" fill="currentColor" fill-opacity=".12" stroke="none"/><path d="M45 12L55 25 45 35 30 27z" fill="currentColor" fill-opacity=".22" stroke="none"/><path d="M27 43L45 35 41 54 23 54z" fill="currentColor" fill-opacity=".34" stroke="none"/></svg>',
+  paper:'<svg '+SVG_ATTR+'><path d="M18 8h20l10 10v38a2 2 0 0 1-2 2H18a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z"/><path d="M38 8v10h10"/><path d="M24 30h16M24 38h16M24 46h10"/></svg>',
+  scissors:'<svg '+SVG_ATTR+'><path d="M20 48L50 8M44 48L14 8"/><circle cx="15" cy="54" r="7"/><circle cx="49" cy="54" r="7"/><circle cx="32" cy="32" r="1.8" fill="currentColor"/></svg>',
+  idle:'<svg '+SVG_ATTR+'><circle cx="32" cy="32" r="22"/><circle cx="32" cy="32" r="9" fill="currentColor" stroke="none"/></svg>',
+  ready:'<svg '+SVG_ATTR+'><circle cx="32" cy="32" r="22"/><circle cx="32" cy="32" r="12"/><circle cx="32" cy="32" r="3.5" fill="currentColor" stroke="none"/></svg>'
+};
+const LABEL={rock:'Rock',paper:'Paper',scissors:'Scissors'};
+const CHECK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M7.8 12.4l3 3 5.6-6"/></svg>';
+const CROSS='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M9 9l6 6M15 9l-6 6"/></svg>';
+function cpuFace(k){$('cpu').innerHTML=ICON[k]||ICON.idle}
+cpuFace('idle');
+
+let liveKey='';
+function setLive(text,g){
+  const k=text+'|'+(g||'');if(k===liveKey)return;liveKey=k;
+  $('live').innerHTML=(g&&ICON[g]?ICON[g]:'')+'<span></span>';$('live').lastChild.textContent=text;
+}
+
+/* toasts: reply for every command sent to the arm */
+function toast(msg,kind){
+  const box=$('toasts');while(box.children.length>=3)box.firstChild.remove();
+  const t=document.createElement('div');t.className='toast '+kind;
+  t.innerHTML=(kind==='ok'?CHECK:CROSS)+'<span></span>';t.lastChild.textContent=msg;box.appendChild(t);
+  setTimeout(()=>t.classList.add('out'),2400);setTimeout(()=>t.remove(),2900);
+}
+/* arm command monitor */
+const ARM_TXT={rock:'Fist closed',paper:'Hand opened',scissors:'Scissors shown',rest:'Rest position'};
+let lastLabel='',armOnline=false,fbState='idle',fbOnline=true,sendTimer=null;
+function setChip(id,cls,text){const c=$(id);c.className='chip '+cls;c.lastChild.textContent=text}
+function paintFb(){
+  if(fbState==='sending')setChip('fbChip','wait','Firebase · Sending…');
+  else if(!fbOnline)setChip('fbChip','bad','Firebase · Offline');
+  else if(fbState==='ok')setChip('fbChip','ok','Firebase · Sent ✓');
+  else if(fbState==='err')setChip('fbChip','bad','Firebase · Not sent');
+  else setChip('fbChip','ok','Firebase · Online');
+}
+/* every command: Sending → "Sent to Firebase" (write confirmed by the server) or "Not sent to Firebase" with the reason */
+function armUI(kind,label,err){try{armUIinner(kind,label,err)}catch(e){console.error(e)}}   /* feedback can never break the game */
+function armUIinner(kind,label,err){
+  const bar=$('armBar');bar.className=kind;
+  const name=ARM_TXT[label]||label||'Command';
+  clearTimeout(sendTimer);
+  $('armTitle').textContent=name;
+  if(kind==='sending'){
+    lastLabel=label;fbState='sending';
+    $('armSub').textContent=fbOnline?'Sending to Firebase…':'Firebase is offline — it will send when the connection returns';
+    sendTimer=setTimeout(()=>{
+      if(fbState!=='sending')return;
+      $('armSub').textContent='Not confirmed by Firebase yet — check your internet connection';
+      toast('Not sent to Firebase yet — check internet','err');
+    },4000);
+  }else if(kind==='ok'){
+    fbState='ok';
+    $('armSub').textContent='Sent to Firebase at '+new Date().toLocaleTimeString()+(armOnline?'':' · arm port shows Offline');
+    toast('Sent to Firebase — '+name,'ok');
+  }else{
+    fbState='err';
+    $('armSub').textContent='Not sent to Firebase — '+(err||'unknown error');
+    toast('Not sent to Firebase — '+(err||'check connection'),'err');
+  }
+  paintFb();
+}
+
+/* ================= back to the main page: smooth fade, same tab ================= */
+let leaving=false;
+$('backBtn').addEventListener('click',async function(e){
+  e.preventDefault();if(leaving)return;leaving=true;
+  document.body.classList.add('leaving');
+  try{running=false;if(stream)stream.getTracks().forEach(t=>t.stop())}catch(err){}
+  try{await Promise.race([ZippyPort.release(),new Promise(r=>setTimeout(r,700))])}catch(err){}
+  setTimeout(()=>{location.href=MAIN_PAGE},450);
+});
+
+firebase.initializeApp({
+  apiKey:"AIzaSyBTCit215onnSyWXjDXRXU1tVsVmKW4MHU",
+  authDomain:"zippythebionicarm.firebaseapp.com",
+  databaseURL:"https://zippythebionicarm-default-rtdb.firebaseio.com",
+  projectId:"zippythebionicarm",
+  storageBucket:"zippythebionicarm.firebasestorage.app",
+  messagingSenderId:"1000242987274",
+  appId:"1:1000242987274:web:6ab9da304f2dfd6b9d3af3"
+});
+const db=firebase.database(), auth=firebase.auth();
+/* live Firebase connection state */
+try{db.ref('.info/connected').on('value',s=>{fbOnline=!!s.val();paintFb()})}catch(e){}
+
+/* ================= Logged-in user + device (same login as the rest of Zippy) ================= */
+function readSavedCode(){
+  let c=localStorage.getItem('zippyCurrentUserCode')||'';
+  if(!c){try{const s=JSON.parse(localStorage.getItem('zippyCrossPageState_v1')||'null');if(s&&s.currentUserCode)c=String(s.currentUserCode)}catch(e){}}
+  return c;
+}
+function readSavedEmail(){
+  let e=localStorage.getItem('zippyUserEmail')||'';
+  if(!e){try{const s=JSON.parse(localStorage.getItem('zippyCrossPageState_v1')||'null');if(s&&s.googleUser&&s.googleUser.email)e=s.googleUser.email}catch(x){}}
+  return e||localStorage.getItem('zippyVerifiedEmail')||'';
+}
+let deviceCode=readSavedCode();
+function paintUser(email){
+  $('uEmail').textContent=email||'Not signed in';
+  $('uDev').textContent='Device '+(deviceCode||'—');
+  $('upill').classList.toggle('setcode',!deviceCode);
+}
+auth.onAuthStateChanged(u=>paintUser(u&&u.email?u.email:readSavedEmail()));
+$('upill').onclick=()=>{
+  if(deviceCode)return;
+  const c=prompt('Enter your device code'); if(c&&c.trim()){deviceCode=c.trim();localStorage.setItem('zippyCurrentUserCode',deviceCode);paintUser(auth.currentUser&&auth.currentUser.email);sendRest();startHeartbeatWatch()}
+};
+paintUser(readSavedEmail());
+
+/* ================= ESP32 serial port + Connected/Offline (same logic as the main page) =================
+   Online follows the ESP32 serial port. Click "Port" to pick it; a port already allowed on the main page
+   is re-opened automatically here. Without Web Serial support, the Firebase heartbeat is used instead. */
+const ZIPPY_SERIAL_BAUD=115200;
+const STATUS_STALE_AFTER_MS=35000;
+const _heartbeatSeenAt={};
+let _serverOffset=0;
+try{db.ref('.info/serverTimeOffset').on('value',s=>{_serverOffset=Number(s.val())||0})}catch(e){}
+const _serverNow=()=>Date.now()+_serverOffset;
+let lastStatusData=null;
+
+function isDeviceStatusOnline(data,code){
+  if(window.ZippySerial&&window.ZippySerial.supported){
+    if(!window.ZippySerial.isConnected()){delete _heartbeatSeenAt[code];return false}
+    _heartbeatSeenAt[code]={ts:0,at:window.ZippySerial.lastActivity()||Date.now()};return true;
+  }
+  const st=data?data.status:null;
+  const state=(st&&typeof st==='object')?st.state:st;
+  if(state!=='online'){delete _heartbeatSeenAt[code];return false}
+  const ts=(st&&typeof st==='object')?st.ts:null;
+  if(ts===null||ts===undefined||isNaN(Number(ts)))return false;
+  const t=Number(ts);
+  if(t>1e12){const age=_serverNow()-t;if(age<STATUS_STALE_AFTER_MS){_heartbeatSeenAt[code]={ts:t,at:Date.now()};return true}return false}
+  const prev=_heartbeatSeenAt[code];
+  if(!prev){_heartbeatSeenAt[code]={ts:t,at:Date.now(),unverified:true};return false}
+  if(prev.ts!==t){_heartbeatSeenAt[code]={ts:t,at:Date.now()};return true}
+  return !prev.unverified&&(Date.now()-prev.at)<STATUS_STALE_AFTER_MS;
+}
+function renderDeviceStatus(data,code){
+  lastStatusData=data;
+  const on=isDeviceStatusOnline(data,code||deviceCode);
+  armOnline=on;
+  const s=$('status');
+  s.className='status mono '+(on?'ok':'err');
+  s.textContent=on?'Connected':'Offline';
+  setChip('portChip',on?'ok':'bad','Arm · '+(on?'Connected':'Offline'));
+}
+let hbRef=null,hbPoll=null;
+function startHeartbeatWatch(){
+  try{if(hbRef)hbRef.off()}catch(e){}clearInterval(hbPoll);
+  if(!deviceCode){renderDeviceStatus(null,'');return}
+  hbRef=db.ref('users/'+deviceCode);
+  hbRef.on('value',s=>renderDeviceStatus(s.val(),deviceCode),()=>renderDeviceStatus(null,deviceCode));
+  hbPoll=setInterval(()=>renderDeviceStatus(lastStatusData,deviceCode),1000);
+}
+const ZippyPort=(function(){
+  const btn=$('portBtn'),label=$('portLabel');
+  const supported=('serial' in navigator);
+  const INFO_KEY='zippySerialPortInfo';
+  let port=null,reader=null,loop=null,connected=false,lastActivity=0;
+  window.ZippySerial={supported:supported,isConnected:()=>connected,lastActivity:()=>lastActivity};
+  function setConnected(v){
+    connected=v;btn.classList.toggle('on',v);
+    label.textContent=v?'Port · On':'Port';
+    btn.title=v?'ESP32 port connected — click to disconnect':'Select ESP32 port';
+    renderDeviceStatus(lastStatusData,deviceCode);
+  }
+  async function readLoop(p){
+    while(p.readable&&port===p){
+      reader=p.readable.getReader();
+      try{while(true){const r=await reader.read();if(r.done)break;if(r.value&&r.value.length)lastActivity=Date.now()}}catch(e){}
+      finally{try{reader.releaseLock()}catch(e){}reader=null}
+    }
+    if(port===p){try{await p.close()}catch(e){}port=null;setConnected(false)}
+  }
+  async function openPort(p){
+    await p.open({baudRate:ZIPPY_SERIAL_BAUD});
+    try{await p.setSignals({dataTerminalReady:false,requestToSend:false})}catch(e){}
+    try{localStorage.setItem(INFO_KEY,JSON.stringify(p.getInfo?p.getInfo():{}))}catch(e){}
+    port=p;lastActivity=Date.now();setConnected(true);loop=readLoop(p);
+  }
+  async function disconnect(){
+    const p=port;if(!p)return;port=null;
+    try{if(reader)await reader.cancel()}catch(e){}
+    try{if(loop)await loop}catch(e){}
+    try{await p.close()}catch(e){}
+    setConnected(false);
+  }
+  btn.addEventListener('click',async()=>{
+    if(!supported){banner('Port select needs Chrome or Edge on desktop',3400);return}
+    if(connected){await disconnect();banner('ESP32 port disconnected',2200);return}
+    try{const p=await navigator.serial.requestPort();await openPort(p);banner('ESP32 port connected',2200)}
+    catch(e){if(e&&e.name!=='NotFoundError')banner('Could not open port — is it in use?',3200)}
+  });
+  if(supported){
+    const matchesSaved=p=>{try{const sv=JSON.parse(localStorage.getItem(INFO_KEY)||'{}'),i=p.getInfo?p.getInfo():{};if(!sv.usbVendorId)return true;return sv.usbVendorId===i.usbVendorId&&sv.usbProductId===i.usbProductId}catch(e){return true}};
+    const autoOpen=async c=>{if(connected)return;for(const p of c){if(!matchesSaved(p))continue;try{await openPort(p);return}catch(e){}}};
+    navigator.serial.getPorts().then(autoOpen).catch(()=>{});
+    navigator.serial.addEventListener('connect',e=>autoOpen([e.target]));
+    navigator.serial.addEventListener('disconnect',e=>{if(e.target===port){const p=port;port=null;try{p.close()}catch(x){}setConnected(false)}});
+  }
+  return{release:async()=>{await disconnect()}};
+})();
+startHeartbeatWatch();
+renderDeviceStatus(null,deviceCode);
+
+/* ================= Robot (game logic unchanged; only the on-screen feedback calls were added) ================= */
+const POSES={
+  rock:    {thumb:140,index:180,middle:180,ring:180,pinky:180},
+  paper:   {thumb:0,  index:0,  middle:0,  ring:0,  pinky:0},
+  scissors:{thumb:140,index:0,  middle:0,  ring:180,pinky:180}
+};
+const REST={thumb:0,index:0,middle:0,ring:0,pinky:0,wrist:70,arm:360,shoulder:0,extend:360,abduction:360};
+/* shows the reply for each command in the arm monitor + toast */
+function setStatus(kind,text,tip){
+  $('status').title=(kind==='err'?'Not sent: ':'Last sent: ')+(tip||text||'');
+  if(kind==='ok')armUI('ok',(tip||'').replace('Last sent: ',''));
+  else{const m=String(tip||text||'');armUI('err',lastLabel,/PERMISSION_DENIED/i.test(m)?'permission denied by Firebase rules (sign in again)':m)}
+}
+let chain=Promise.resolve();
+async function write(fields){
+  await db.ref('users/'+deviceCode+'/command').set(Object.assign({name:'finger_angles'},fields,{ts:firebase.database.ServerValue.TIMESTAMP}));
+}
+function sendRobot(fields,label){
+  if(!deviceCode){setStatus('err','No device','Click your device pill to set a device code');return Promise.resolve(false)}
+  armUI('sending',label);
+  chain=chain.then(async()=>{
+    try{
+      try{await write(fields)}
+      catch(e){
+        if(auth.currentUser||!/PERMISSION_DENIED/i.test(String(e&&(e.code||e.message))))throw e;
+        await auth.signInAnonymously(); await write(fields);
+      }
+      setStatus('ok','Connected','Last sent: '+label);return true;
+    }catch(e){console.error(e);setStatus('err','Not sent',(e&&e.message)||String(e));return false}
+  });
+  return chain;
+}
+const sendRest=()=>sendRobot(REST,'rest');
+const sendMove=m=>sendRobot(POSES[m],m);
+
+/* ================= Hand tracking ================= */
+const video=$('video'), ov=$('ov'), octx=ov.getContext('2d');
+let hands=null, stream=null, buffer=[], running=false;
+const MOVES=['rock','paper','scissors'];
+const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+function classify(lm){
+  const w=lm[0],tips=[8,12,16,20],pips=[6,10,14,18];
+  const ext=tips.map((t,i)=>dist(lm[t],w)>dist(lm[pips[i]],w)*1.12), n=ext.filter(Boolean).length;
+  if(n===0)return 'rock';
+  if(ext[0]&&ext[1]&&!ext[2]&&!ext[3])return 'scissors';
+  if(n>=3&&ext[0]&&ext[1])return 'paper';
+  return null;
+}
+/* Backup classifier for a hand that is partly out of frame: it measures each finger against its own knuckle,
+   so it does not depend on the wrist being visible. Used only when the hand touches the frame edge,
+   or when the normal check above could not decide. */
+function classifyLoose(lm){
+  const mcp=[5,9,13,17],pip=[6,10,14,18],tip=[8,12,16,20];
+  const ext=tip.map((t,i)=>dist(lm[t],lm[mcp[i]])>dist(lm[pip[i]],lm[mcp[i]])*1.6), n=ext.filter(Boolean).length;
+  if(n===0)return 'rock';
+  if(ext[0]&&ext[1]&&!ext[2]&&!ext[3])return 'scissors';
+  if(n>=3&&ext[0]&&ext[1])return 'paper';
+  return null;
+}
+const isCut=lm=>lm.some(p=>p.x<.02||p.x>.98||p.y<.02||p.y>.98);                 // hand touches the frame edge (label only)
+const outside=p=>p.x<-.02||p.x>1.02||p.y<-.02||p.y>1.02;                         // landmark estimated outside the camera frame
+const baseCut=lm=>[0,5,9,13,17].some(i=>outside(lm[i]));                          // wrist / knuckles cut off
+function pickGesture(lm){
+  try{return baseCut(lm)?(classifyLoose(lm)||classify(lm)):(classify(lm)||classifyLoose(lm))}
+  catch(e){return classify(lm)}
+}
+const BONES=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+/* tracking speed readout: shows the hand tracker is alive (frames analysed per second) */
+let fpsN=0;setInterval(()=>{$('fps').textContent='Tracking '+fpsN+' fps';fpsN=0},1000);
+function onResults(r){
+  fpsN++;
+  ov.width=video.videoWidth||640;ov.height=video.videoHeight||480;octx.clearRect(0,0,ov.width,ov.height);
+  let g=null,cut=false,found=r.multiHandLandmarks&&r.multiHandLandmarks.length;
+  if(found){
+    const lm=r.multiHandLandmarks[0];g=pickGesture(lm);cut=isCut(lm);
+    octx.strokeStyle='rgba(255,255,255,.8)';octx.lineWidth=2.5;octx.beginPath();
+    BONES.forEach(b=>{octx.moveTo(lm[b[0]].x*ov.width,lm[b[0]].y*ov.height);octx.lineTo(lm[b[1]].x*ov.width,lm[b[1]].y*ov.height)});octx.stroke();
+    octx.fillStyle='#c4502a';lm.forEach(p=>{octx.beginPath();octx.arc(p.x*ov.width,p.y*ov.height,4.5,0,7);octx.fill()});
+  }
+  buffer.push({t:performance.now(),g});if(buffer.length>90)buffer.shift();
+  setLive(g?('I see '+LABEL[g]+(cut?' · hand partly out of frame':'')):(found?'Hand found — show a clear move':'Looking for your hand…'),g);
+}
+async function initCamera(){
+  if(running)return true;
+  $('loading').classList.add('on');
+  const step=t=>{$('loadTxt').textContent=t};
+  try{
+    step('Requesting camera access… please click Allow');
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:960},height:{ideal:720}},audio:false});
+    video.srcObject=stream;await video.play();
+    if(typeof Hands==='undefined')throw new Error('The hand-tracking library did not load. Check your internet connection or ad blocker, then reload the page.');
+    step('Loading the hand-tracking model… the first time can take a few seconds');
+    hands=new Hands({locateFile:f=>'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/'+f});
+    hands.setOptions({maxNumHands:1,modelComplexity:1,minDetectionConfidence:.5,minTrackingConfidence:.5});
+    hands.onResults(onResults);
+    await Promise.race([hands.initialize(),new Promise((_,rej)=>setTimeout(()=>rej(new Error('The hand-tracking model took too long to load. Check your internet connection and reload the page.')),40000))]);
+    running=true;document.body.classList.add('camon');
+    (async function loop(){if(!running)return;if(video.readyState>=2){try{await hands.send({image:video})}catch(e){}}requestAnimationFrame(loop)})();
+    $('loading').classList.remove('on');return true;
+  }catch(e){
+    try{if(stream)stream.getTracks().forEach(t=>t.stop())}catch(x){}stream=null;
+    $('loadTxt').innerHTML='Camera problem: '+((e&&e.message)||e)+'<br>Allow camera access (page must be on https or localhost), and close other tabs that are using the camera.<br><br><button class="btn ghost" onclick="document.getElementById(\'loading\').classList.remove(\'on\')">Close</button> <button class="btn" onclick="location.reload()">Reload page</button>';
+    return false;
+  }
+}
+
+/* ================= Navigation ================= */
+function view(id){
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on',v.id===id));
+  const el=$(id).querySelector('.rise');if(el){el.classList.remove('rise');void el.offsetWidth;el.classList.add('rise')}
+  scrollTo(0,0);
+}
+$('playCard').onclick=async()=>{if(!await initCamera())return;view('pick');try{sendRest()}catch(e){console.error(e)}};
+$('practiceCard').onclick=async()=>{if(!await initCamera())return;$('game').classList.add('practice');resetRoundUI();$('roundBtn').style.display='none';view('game')};
+$('restCard').onclick=()=>{sendRest();banner('Rest position sent',1800)};
+function exitFc(){document.body.classList.remove('fc');$('fcBtn').textContent='Camera only';$('fcEnd').style.display='none'}
+$('leaveBtn').onclick=()=>{busy=false;aborted=true;exitFc();$('game').classList.remove('practice');sendRest();view('home')};
+$('fcBtn').onclick=()=>{const on=document.body.classList.toggle('fc');$('fcBtn').textContent=on?'Exit camera view':'Camera only';scrollTo(0,0)};
+function resetMatch(){you=cpu=0;round=1;aborted=false;$('sYou').textContent=0;$('sCpu').textContent=0;$('info').textContent=$('info').textContent.replace(/Round \d+/,'Round 1');resetRoundUI();sendRest()}
+$('fcAgain').onclick=()=>{$('fcEnd').style.display='none';resetMatch()};
+$('fcMenu').onclick=()=>{exitFc();sendRest();view('pick')};
+function showFcEnd(won){
+  $('fcTitle').className=won?'':'lose';
+  $('fcTitle').innerHTML=won?'You <b>win.</b>':'You <b>lost.</b>';
+  $('fcSub').textContent=won?'Final score '+you+' – '+cpu+'. Nicely played.':'Zippy took it '+cpu+' – '+you+'. Give it another go.';
+  $('fcAgain').textContent=won?'Play again':'Try again';
+  $('fcEnd').style.display='flex';
+}
+
+/* ================= Game ================= */
+let target=2,you=0,cpu=0,round=1,busy=false,aborted=false;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+let bt;function banner(t,ms){const b=$('banner');b.textContent=t;b.classList.add('on');clearTimeout(bt);if(ms)bt=setTimeout(()=>b.classList.remove('on'),ms)}
+const hideBanner=()=>$('banner').classList.remove('on');
+
+document.querySelectorAll('[data-n]').forEach(b=>b.onclick=()=>{
+  const n=+b.dataset.n;target=Math.ceil(n/2);you=cpu=0;round=1;busy=false;aborted=false;
+  $('game').classList.remove('practice');$('sYou').textContent=0;$('sCpu').textContent=0;
+  $('info').textContent='Best of '+n+' · Round 1';resetRoundUI();view('game');
+});
+$('againBtn').onclick=()=>{you=cpu=0;round=1;aborted=false;$('sYou').textContent=0;$('sCpu').textContent=0;$('info').textContent=$('info').textContent.replace(/Round \d+/,'Round 1');resetRoundUI();view('game');sendRest()};
+$('menuBtn').onclick=()=>{sendRest();view('pick')};
+/* keep=true: after a round, leave Zippy's move and your captured move on screen until the next round is started */
+function resetRoundUI(keep){
+  $('cpu').className='';
+  if(!keep){cpuFace('idle');$('cpuName').textContent='Ready';$('snap').style.display='none'}
+  hideBanner();$('roundBtn').style.display='';
+  $('roundBtn').textContent=keep?'Next round':'Start round';
+}
+$('roundBtn').onclick=playRound;
+const decide=(a,b)=>a===b?'draw':((a==='rock'&&b==='scissors')||(a==='paper'&&b==='rock')||(a==='scissors'&&b==='paper'))?'you':'cpu';
+function bump(id){const e=$(id);e.classList.remove('bump');void e.offsetWidth;e.classList.add('bump')}
+
+async function playRound(){
+  if(busy)return;busy=true;aborted=false;
+  $('roundBtn').style.display='none';$('snap').style.display='none';hideBanner();
+  const cpuMove=MOVES[Math.floor(Math.random()*3)];            // chosen before seeing the player
+  cpuFace('ready');$('cpu').className='shake';$('cpuName').textContent='Get ready…';
+  sendMove('rock');                                              // arm clenches during countdown
+  const c=$('count'),t=$('countTxt');
+  for(const n of [3,2,1]){c.className='on';t.textContent=n;t.style.animation='none';void t.offsetWidth;t.style.animation='';await sleep(900);if(aborted){c.className='';return}}
+  c.className='on go';t.textContent='SHOOT!';const tShoot=performance.now();
+  sendMove(cpuMove);                                             // arm reveals its move
+  $('cpu').className='pop';cpuFace(cpuMove);$('cpuName').textContent=LABEL[cpuMove];
+  await sleep(700);c.className='';if(aborted)return;
+
+  const sc=document.createElement('canvas');sc.width=video.videoWidth;sc.height=video.videoHeight;
+  sc.getContext('2d').drawImage(video,0,0);$('snap').src=sc.toDataURL('image/jpeg',.9);$('snap').style.display='block';
+  const vote=ms=>{const v={};buffer.filter(x=>x.t>tShoot-ms&&x.g).forEach(x=>v[x.g]=(v[x.g]||0)+1);return Object.keys(v).sort((a,b)=>v[b]-v[a])[0]};
+  const mine=vote(250)||vote(1000);   // same vote as before; only if it finds nothing, look back a little further instead of dropping the round
+
+  if(!mine){banner('Couldn’t see your move — replaying the round',2400);await sleep(2500);await sendRest();busy=false;resetRoundUI();return}
+  setLive('You played '+LABEL[mine],mine);
+  const res=decide(mine,cpuMove);
+  if(res==='you'){you++;banner('You win this round',2500);bump('sYou')}
+  else if(res==='cpu'){cpu++;banner('Zippy wins this round',2500);bump('sCpu')}
+  else banner('Draw — go again',2500);
+  $('sYou').textContent=you;$('sCpu').textContent=cpu;
+  await sleep(2700);if(aborted)return;
+  if(you>=target||cpu>=target){await sendRest();busy=false;finish(you>=target);return}
+  if(res!=='draw')round++;
+  $('info').textContent=$('info').textContent.replace(/Round \d+/,'Round '+round);
+  await sendRest();busy=false;resetRoundUI(true);
+}
+function finish(won){
+  hideBanner();
+  const t=$('endTitle');t.className=won?'':'lose';
+  t.innerHTML=won?'You <b>win.</b>':'You <b>lost.</b>';
+  $('endSub').textContent=won?'Final score '+you+' – '+cpu+'. Nicely played.':'Zippy took it '+cpu+' – '+you+'. Give it another go.';
+  $('againBtn').textContent=won?'Play again':'Try again';
+  if(document.body.classList.contains('fc'))showFcEnd(won);else view('end');
+  if(won)confetti();
+}
+
+/* ================= Confetti popper ================= */
+function confetti(){
+  const cv=$('confetti'),ctx=cv.getContext('2d');cv.width=innerWidth;cv.height=innerHeight;
+  const cols=['#c4502a','#16181b','#e8c36a','#efe9dc','#2f9e6e'],P=[];
+  function burst(x,dir){for(let i=0;i<110;i++){const a=-Math.PI/2+dir*(Math.random()*.9)-dir*.1,s=9+Math.random()*13;
+    P.push({x,y:cv.height,vx:Math.cos(a)*s,vy:Math.sin(a)*s,w:6+Math.random()*7,h:10+Math.random()*8,r:Math.random()*6,vr:(Math.random()-.5)*.4,c:cols[i%cols.length]})}}
+  burst(0,1);burst(cv.width,-1);setTimeout(()=>{burst(cv.width*.25,1);burst(cv.width*.75,-1)},500);
+  const end=performance.now()+5000;
+  (function tick(){ctx.clearRect(0,0,cv.width,cv.height);
+    P.forEach(p=>{p.vy+=.28;p.vx*=.992;p.x+=p.vx;p.y+=p.vy;p.r+=p.vr;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.fillStyle=p.c;ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);ctx.restore()});
+    if(performance.now()<end)requestAnimationFrame(tick);else ctx.clearRect(0,0,cv.width,cv.height)})();
+}
+</script>
+</body>
+</html>
