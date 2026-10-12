@@ -534,7 +534,7 @@ const POSES={
   paper:   {thumb:0,  index:0,  middle:0,  ring:0,  pinky:0},
   scissors:{thumb:140,index:0,  middle:0,  ring:180,pinky:180}
 };
-const REST={thumb:0,index:0,middle:0,ring:0,pinky:0,wrist:70,arm:360,shoulder:0,extend:360,abduction:360};
+const REST={thumb:0,index:0,middle:0,ring:0,pinky:0,wrist:70,arm:0,shoulder:0,extend:360,abduction:360};
 /* shows the reply for each command in the arm monitor + toast */
 function setStatus(kind,text,tip){
   $('status').title=(kind==='err'?'Not sent: ':'Last sent: ')+(tip||text||'');
